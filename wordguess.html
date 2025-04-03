@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Detective</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e1e3f, #ff3366, #00ddeb);
+            background-size: 200% 200%;
+            animation: gradientBG 12s ease infinite;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+        #particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            animation: float 8s infinite ease-in-out;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(1); opacity: 0.7; }
+            100% { transform: translateY(-10vh) scale(0.3); opacity: 0; }
+        }
+        .game-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: clamp(3rem, 7vw, 5rem);
+            text-shadow: 0 0 30px rgba(255, 51, 102, 0.9), 0 0 50px rgba(0, 221, 235, 0.7);
+            margin-bottom: 30px;
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 15px rgba(255, 255, 255, 0.6); }
+            to { text-shadow: 0 0 40px rgba(255, 51, 102, 0.9), 0 0 60px rgba(0, 221, 235, 0.7); }
+        }
+        .level-selection, .word-board {
+            background: rgba(255, 255, 255, 0.15);
+            padding: clamp(25px, 5vw, 35px);
+            border-radius: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            width: 100%;
+            max-width: 800px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .level-selection:hover, .word-board:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+        }
+        .levels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            justify-content: center;
+        }
+        .level-card {
+            background: linear-gradient(45deg, #ff3366, #ff6699);
+            padding: clamp(20px, 3vw, 25px);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            font-weight: 700;
+            box-shadow: 5px 5px 20px rgba(255, 51, 102, 0.6);
+            flex: 1 1 140px;
+            color: #fff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .level-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(30deg);
+            transition: all 0.4s ease;
+        }
+        .level-card:hover::after {
+            top: 100%;
+            left: 100%;
+        }
+        .level-card:hover {
+            transform: scale(1.15) rotate(3deg);
+            background: linear-gradient(45deg, #ff1a4d, #ff4d80);
+            box-shadow: 5px 5px 25px rgba(255, 51, 102, 0.9);
+        }
+        .word-board {
+            display: none;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(60px, 1fr));
+            gap: 8px;
+            margin: 40px auto;
+            width: 100%;
+            max-width: 360px;
+        }
+        .cell {
+            background: linear-gradient(135deg, #ffffff, #e6e6f0);
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: clamp(1.8rem, 4vw, 2.2rem);
+            font-weight: 700;
+            transition: all 0.3s ease;
+            border: 2px solid #b0b0c0;
+            box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.15);
+            aspect-ratio: 1 / 1;
+            position: relative;
+            overflow: hidden;
+        }
+        .cell.reveal {
+            animation: bounce 0.5s ease;
+        }
+        @keyframes bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .cell.correct {
+            background: linear-gradient(135deg, #00ddeb, #66e6ff);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(0, 221, 235, 0.8);
+        }
+        .cell.present {
+            background: linear-gradient(135deg, #ffcc00, #ffeb66);
+            color: #333;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
+        }
+        .cell.absent {
+            background: linear-gradient(135deg, #666699, #9999cc);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(102, 102, 153, 0.8);
+        }
+        .cell:hover {
+            transform: scale(1.1);
+        }
+        #keyboard {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        .key {
+            background: linear-gradient(45deg, #ffffff, #e6e6f0);
+            color: #333;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        .key:hover {
+            background: linear-gradient(45deg, #ff3366, #ff6699);
+            color: #fff;
+            transform: scale(1.1);
+        }
+        .key.used.correct { background: linear-gradient(135deg, #00ddeb, #66e6ff); color: #fff; }
+        .key.used.present { background: linear-gradient(135deg, #ffcc00, #ffeb66); color: #333; }
+        .key.used.absent { background: linear-gradient(135deg, #666699, #9999cc); color: #fff; }
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        .controls button {
+            background: linear-gradient(45deg, #ff3366, #ff6699);
+            color: #fff;
+            border: none;
+            padding: clamp(12px, 2.5vw, 16px) clamp(25px, 4vw, 30px);
+            cursor: pointer;
+            border-radius: 15px;
+            font-size: clamp(1.2rem, 3vw, 1.4rem);
+            font-weight: 700;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 51, 102, 0.6);
+        }
+        .controls button:hover {
+            background: linear-gradient(45deg, #ff1a4d, #ff4d80);
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(255, 51, 102, 0.9);
+        }
+        #timer, #score, #hints, #attempts {
+            margin-bottom: 25px;
+            font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+        .control-par {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        @media (max-width: 600px) {
+            #board { max-width: 90vw; }
+            .level-card { flex: 1 1 120px; }
+            #keyboard { grid-template-columns: repeat(5, 1fr); }
+            .key { padding: 8px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="particles"></div>
+    <div class="game-container">
+        <h1>Word Detective</h1>
+        <div class="level-selection">
+            <h2>Select Case Difficulty</h2>
+            <div class="levels">
+                <div class="level-card" data-difficulty="easy">Rookie</div>
+                <div class="level-card" data-difficulty="medium">Sleuth</div>
+                <div class="level-card" data-difficulty="hard">Master</div>
+            </div>
+        </div>
+        <div class="word-board">
+            <div class="control-par">
+                <p id="timer"><span>⏱️</span> 00:00</p>
+                <p id="score"><span>🏆</span> 0</p>
+                <p id="hints"><span>💡</span> 3</p>
+                <p id="attempts"><span>🔍</span> 6</p>
+            </div>
+            <div id="board"></div>
+            <div id="keyboard"></div>
+            <div class="controls">
+                <button id="hint">Reveal Clue</button>
+                <button id="new-game">New Mystery</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let secretWord = "";
+        let currentGuess = Array(5).fill(""); // Tracks the current row's letters
+        let letterOccurrences = {}; // Tracks how many times each letter has been placed
+        let timerInterval = null;
+        let timeElapsed = 0;
+        let score = 0;
+        let hintsLeft = 3;
+        let attemptsLeft = 6;
+        let currentDifficulty = "easy";
+
+        const wordList = {
+            easy: ["apple", "bread", "cloud", "dance", "earth", "flame", "grape", "house", "jolly", "smile", "beach", "candy", "dream", "eagle", "fairy", "ghost", "honey", "igloo", "jelly", "koala", "lucky", "music", "piano", "river", "sunny", "tiger", "umbra", "vivid", "water", "zebra", "angel", "brick", "crisp", "daisy", "fluff", "globe", "happy", "ivory", "jumpy", "karma", "lemon", "mango", "noble", "olive", "peach", "quiet", "raspy", "sweet", "tulip", "unity", "vocal", "wheat", "yacht", "amber", "bliss", "charm", "dizzy", "ember", "froze", "gloom", "hedge", "inbox", "juicy", "kayak", "latch", "mirth", "nudge", "otter", "plush", "query", "robin", "salsa", "tango", "udder", "venom", "whale", "xerox", "yummy", "acorn", "blink", "covey", "dwell", "flint", "grunt", "hover", "itchy", "jolly", "kneel", "lumen", "mossy", "nifty", "opium", "pixie", "quail", "rusty", "swoop", "teary", "unzip", "vixen", "wispy", "youth", "agile", "bumpy", "chewy", "dodge", "exact", "fable", "girly", "harpy", "irony", "joust", "knack", "lanky", "moldy", "nymph", "ounce", "pansy", "quirk", "ripen", "savvy", "thyme", "ultra", "viper", "wacky", "xenon", "yearn", "aisle", "bongo", "cacti", "dandy", "elbow", "fanny", "gauze", "hippo", "jelly", "kinky", "lilac", "mummy", "nudge", "ovary", "pouty", "quilt", "rumba", "swirl", "tweak", "unlit", "vowel", "wryly", "yodel", "afoot", "bugle", "covey", "dingy", "elope", "fugue", "gipsy", "hunky", "inlay", "jowly", "kudos", "lurid", "mangy", "noble", "oomph", "pesky", "quash", "ruddy", "slyly", "twixt", "uncut", "vouch", "whelp", "xylem", "yokel", "abide", "bicep", "chive", "dowdy", "egret", "fjord", "gumbo", "hutch", "infer", "jumpy", "kiosk", "lousy", "minty", "nylon", "ovine", "plumb", "quell", "rebar", "squib", "tryst", "upend", "vapid", "wince", "xerox", "yogic", "alloy", "bland", "crony", "dumpy", "evoke", "fizzy", "gawky", "harem", "inapt", "jowar", "kneed", "lurid", "mangy", "nymph", "ovoid", "pique", "qualm", "retch", "saucy", "twixt", "unfed", "vying", "wispy", "xenon", "yawed", "abode", "blimp", "cower", "dusky", "eking", "froth", "gipsy", "harpy", "iliac", "jowly", "kooky", "loamy", "moult", "nixed", "owing", "prawn", "quoth", "rowdy", "shtik", "twixt", "unzip", "vireo", "whorl", "xeric", "yogis", "agape", "befit", "cough", "dwelt", "exult", "fugly", "gipsy", "hunky", "incur", "jowly", "kooky", "lurid", "mangy", "nixed", "ovary", "pique", "quash", "retch", "shtik", "twixt", "unmet", "vying", "whelp", "xylem", "yawed", "abyss", "blurb", "crypt", "droll", "eking", "fjord", "glyph", "hunky", "inlay", "jowly", "kudos", "lurid", "mangy", "nixed", "ovary", "pique", "quash", "retch", "shtik", "twixt", "unmet", "vying", "whelp", "xylem", "yawed", "abyss"],
+            medium: ["blaze", "crisp", "flute", "grape", "jolly", "prism", "quilt", "snack", "twist", "vivid"],
+            hard: ["abyss", "crypt", "fjord", "glyph", "vixen", "whisk", "zesty", "quirk", "jinxed", "bizarre"]
+        };
+
+        const clickSound = new Audio('https://www.soundjay.com/buttons/beep-01a.mp3');
+        clickSound.volume = 0.3;
+
+        // Particle animation
+        function createParticles() {
+            const particlesContainer = document.getElementById("particles");
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement("div");
+                particle.classList.add("particle");
+                particle.style.left = `${Math.random() * 100}vw`;
+                particle.style.animationDelay = `${Math.random() * 4}s`;
+                particlesContainer.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // Confetti animation
+        function confetti() {
+            for (let i = 0; i < 80; i++) {
+                const confetti = document.createElement("div");
+                confetti.style.position = "absolute";
+                confetti.style.width = "8px";
+                confetti.style.height = "8px";
+                confetti.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.borderRadius = "50%";
+                confetti.style.top = `${Math.random() * 100}vh`;
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.animation = `fall ${1 + Math.random() * 1.5}s ease-out`;
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 2500);
+            }
+        }
+        document.head.insertAdjacentHTML("beforeend", `
+            <style>
+                @keyframes fall {
+                    0% { transform: translateY(-100vh) rotate(0deg); }
+                    100% { transform: translateY(100vh) rotate(360deg); }
+                }
+            </style>
+        `);
+
+        // Start game on level selection
+        document.querySelectorAll(".level-card").forEach(card => {
+            card.addEventListener("click", function() {
+                currentDifficulty = this.dataset.difficulty;
+                document.querySelector(".level-selection").style.display = "none";
+                document.querySelector(".word-board").style.display = "block";
+                startGame();
+            });
+        });
+
+        // Hint button
+        document.getElementById("hint").addEventListener("click", giveHint);
+
+        // New game button
+        document.getElementById("new-game").addEventListener("click", function() {
+            document.querySelector(".word-board").style.display = "none";
+            document.querySelector(".level-selection").style.display = "block";
+            clearInterval(timerInterval);
+            resetGame();
+        });
+
+        function startGame() {
+            secretWord = wordList[currentDifficulty][Math.floor(Math.random() * wordList[currentDifficulty].length)];
+            currentGuess = Array(5).fill("");
+            letterOccurrences = {};
+            secretWord.split("").forEach(letter => {
+                letterOccurrences[letter] = (letterOccurrences[letter] || 0) + 1;
+            });
+            attemptsLeft = 6;
+            hintsLeft = 3;
+            score = 0;
+            timeElapsed = 0;
+            const board = document.getElementById("board");
+            board.innerHTML = "";
+            for (let i = 0; i < 5; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                board.appendChild(cell);
+            }
+            createKeyboard();
+            updateStats();
+            startTimer();
+        }
+
+        function createKeyboard() {
+            const keyboard = document.get10 = document.getElementById("keyboard");
+            keyboard.innerHTML = "";
+            const keys = "qwertyuiopasdfghjklzxcvbnm".split("");
+            keys.forEach(letter => {
+                const key = document.createElement("button");
+                key.classList.add("key");
+                key.textContent = letter.toUpperCase();
+                key.addEventListener("click", () => validateLetter(letter));
+                keyboard.appendChild(key);
+            });
+        }
+
+        function validateLetter(letter) {
+            if (attemptsLeft <= 0) return;
+
+            const cells = document.querySelectorAll(".cell");
+            let placed = false;
+
+            // Count how many times this letter has been placed already
+            const placedCount = currentGuess.filter(l => l === letter).length;
+
+            if (secretWord.includes(letter) && placedCount < letterOccurrences[letter]) {
+                // Find the next correct position for this letter
+                const positions = [];
+                secretWord.split("").forEach((char, i) => {
+                    if (char === letter) positions.push(i);
+                });
+                const nextPos = positions[placedCount];
+                if (nextPos !== undefined && !currentGuess[nextPos]) {
+                    currentGuess[nextPos] = letter;
+                    cells[nextPos].textContent = letter.toUpperCase();
+                    cells[nextPos].classList.add("reveal", "correct");
+                    score += 25;
+                    updateKey(letter, "correct");
+                    placed = true;
+                }
+            }
+
+            if (!placed) {
+                // Mark as absent if not in word or all occurrences are placed
+                updateKey(letter, "absent");
+                attemptsLeft--;
+                if (attemptsLeft <= 0) {
+                    endGame(false);
+                }
+            }
+
+            playSound(clickSound);
+            updateStats();
+            checkWin();
+        }
+
+        function updateKey(letter, status) {
+            const key = Array.from(document.querySelectorAll(".key")).find(k => k.textContent.toLowerCase() === letter);
+            if (key && !key.classList.contains("used")) {
+                key.classList.add("used", status);
+            }
+        }
+
+        function giveHint() {
+            if (hintsLeft <= 0) {
+                alert("No clues left, detective!");
+                return;
+            }
+            const unguessedPositions = secretWord.split("").map((char, i) => {
+                return currentGuess[i] !== char ? i : -1;
+            }).filter(i => i !== -1);
+            if (unguessedPositions.length > 0) {
+                const pos = unguessedPositions[Math.floor(Math.random() * unguessedPositions.length)];
+                const letter = secretWord[pos];
+                alert(`Clue: The letter "${letter.toUpperCase()}" is in position ${pos + 1}.`);
+                hintsLeft--;
+                score -= 50;
+                updateStats();
+                playSound(clickSound);
+            } else {
+                alert("You've cracked most of the case!");
+            }
+        }
+
+        function checkWin() {
+            if (currentGuess.join("") === secretWord) {
+                endGame(true);
+            }
+        }
+
+        function endGame(won) {
+            clearInterval(timerInterval);
+            if (won) {
+                confetti();
+                setTimeout(() => {
+                    alert(`Case Solved! Word: ${secretWord.toUpperCase()}\nScore: ${score}`);
+                    startGame();
+                }, 1500);
+            } else {
+                setTimeout(() => {
+                    alert(`Case Closed! Word was: ${secretWord.toUpperCase()}`);
+                    document.querySelector(".word-board").style.display = "none";
+                    document.querySelector(".level-selection").style.display = "block";
+                    resetGame();
+                }, 500);
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeElapsed++;
+                updateStats();
+            }, 1000);
+        }
+
+        function updateStats() {
+            const minutes = Math.floor(timeElapsed / 60).toString().padStart(2, "0");
+            const seconds = (timeElapsed % 60).toString().padStart(2, "0");
+            document.getElementById("timer").innerHTML = `<span>⏱️</span> ${minutes}:${seconds}`;
+            document.getElementById("score").innerHTML = `<span>🏆</span> ${score}`;
+            document.getElementById("hints").innerHTML = `<span>💡</span> ${hintsLeft}`;
+            document.getElementById("attempts").innerHTML = `<span>🔍</span> ${attemptsLeft}`;
+        }
+
+        function resetGame() {
+            timeElapsed = 0;
+            score = 0;
+            hintsLeft = 3;
+            attemptsLeft = 6;
+            updateStats();
+        }
+
+        function playSound(sound) {
+            sound.currentTime = 0;
+            sound.play().catch(() => {});
+        }
+    </script>
+</body>
+</html>
